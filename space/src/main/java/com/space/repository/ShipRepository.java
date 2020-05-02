@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ShipRepository extends JpaRepository<ShipModel, Long>, JpaSpecificationExecutor {
+public interface ShipRepository extends JpaRepository<ShipModel, Long>, JpaSpecificationExecutor<ShipModel> {
     @Override
-    Page findAll(Specification spec, Pageable pageable);
+    Page<ShipModel> findAll(Specification spec, Pageable pageable);
 }
