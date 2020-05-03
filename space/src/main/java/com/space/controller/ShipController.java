@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @RestController
@@ -26,21 +28,23 @@ public class ShipController {
 
     @GetMapping(path = "/ships")
     @ResponseBody
-    public ResponseEntity<List<ShipModel>> getShips(@RequestParam(required = false) String name,
-                                   @RequestParam(required = false) String planet,
-                                   @RequestParam(required = false) ShipType shipType,
-                                   @RequestParam(required = false) Long after,
-                                   @RequestParam(required = false) Long before,
-                                   @RequestParam(required = false) Boolean isUsed,
-                                   @RequestParam(required = false) Double minSpeed,
-                                   @RequestParam(required = false) Double maxSpeed,
-                                   @RequestParam(required = false) Integer minCrewSize,
-                                   @RequestParam(required = false) Integer maxCrewSize,
-                                   @RequestParam(required = false) Double minRating,
-                                   @RequestParam(required = false) Double maxRating,
-                                   @RequestParam(required = false) Integer pageNumber,
-                                   @RequestParam(required = false) Integer pageSize,
-                                   @RequestParam(required = false) String order) {
+    public ResponseEntity<List<ShipModel>> getShips(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String planet,
+            @RequestParam(required = false) ShipType shipType,
+            @RequestParam(required = false) Long after,
+            @RequestParam(required = false) Long before,
+            @RequestParam(required = false) Boolean isUsed,
+            @RequestParam(required = false) Double minSpeed,
+            @RequestParam(required = false) Double maxSpeed,
+            @RequestParam(required = false) Integer minCrewSize,
+            @RequestParam(required = false) Integer maxCrewSize,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double maxRating,
+            @RequestParam(required = false) Integer pageNumber,
+            @RequestParam(required = false) Integer pageSize,
+            @RequestParam(required = false) String order
+    ) {
         if (order == null) {
             order = "id";
         }
@@ -54,7 +58,8 @@ public class ShipController {
         String property = (order.equals("DATE") ? "prodDate" : order.toLowerCase());
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.Direction.ASC, property);
 
-        List<ShipModel> ships = shipService.getShips(name,
+        List<ShipModel> ships = shipService.getShips(
+                name,
                 planet,
                 shipType,
                 after, before,
@@ -63,26 +68,53 @@ public class ShipController {
                 minCrewSize, maxCrewSize,
                 minRating, maxRating,
                 property,
-                pageable);
+                pageable
+        );
+
         return new ResponseEntity<>(ships, HttpStatus.OK);
     }
 
     @GetMapping(path = "/ships/count")
-    public ResponseEntity<Long> getCount() {
-        Long count = shipService.count();
+    public ResponseEntity<Long> getCount(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String planet,
+            @RequestParam(required = false) ShipType shipType,
+            @RequestParam(required = false) Long after,
+            @RequestParam(required = false) Long before,
+            @RequestParam(required = false) Boolean isUsed,
+            @RequestParam(required = false) Double minSpeed,
+            @RequestParam(required = false) Double maxSpeed,
+            @RequestParam(required = false) Integer minCrewSize,
+            @RequestParam(required = false) Integer maxCrewSize,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Double maxRating
+    ) {
+        Long count = shipService.count(
+                name,
+                planet,
+                shipType,
+                after,
+                before,
+                isUsed,
+                minSpeed,
+                maxSpeed,
+                minCrewSize,
+                maxCrewSize,
+                minRating,
+                maxRating
+        );
+
         return new ResponseEntity<>(count, HttpStatus.OK);
     }
 
     @GetMapping(path = "/ships/{id}")
     public ResponseEntity<ShipModel> editShip(@PathVariable Long id) {
         Optional<ShipModel> shipModel = shipService.getShipById(id);
-        if (!shipModel.isPresent()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        if (id < 0) {
+        if (id <= 0) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(shipModel.get(), HttpStatus.OK);
+        return shipModel.map(model -> new ResponseEntity<>(model, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping(path = "/ships")
@@ -128,45 +160,83 @@ public class ShipController {
 
     @PostMapping(path = "/ships/{id}")
     public ResponseEntity<ShipModel> editShip(@PathVariable Long id,
-                                              @RequestBody ShipModel updatedShip){
+                                              @RequestBody ShipModel updatedShip) {
+        if (id <= 0) {
+            return  new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
         Optional<ShipModel> shipModel = shipService.getShipById(id);
         if (!shipModel.isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        if (id < 0) {
-            return  new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        String name = updatedShip.getName();
+        String planet = updatedShip.getPlanet();
+        Date prodDate = updatedShip.getProdDate();
+        Double speed = updatedShip.getSpeed();
+        Integer crewSize = updatedShip.getCrewSize();
+
+        boolean requestBodyIsEmpty = (
+                updatedShip.getId() == null && name == null &&
+                        planet == null && updatedShip.getShipType() == null &&
+                        prodDate == null && updatedShip.getUsed() == null &&
+                        speed == null && crewSize == null
+        );
+        if (requestBodyIsEmpty) {
+            return new ResponseEntity<>(shipModel.get(), HttpStatus.OK);
         }
+
         ShipModel originalShip = shipModel.get();
-        if (updatedShip.getName() != null) {
-            originalShip.setName(updatedShip.getName());
+
+        if (name != null) {
+            if (name.isEmpty() || name.length() > 50) {
+                return new ResponseEntity<>(updatedShip, HttpStatus.BAD_REQUEST);
+            }
+            originalShip.setName(name);
         }
-        if (updatedShip.getPlanet() != null) {
+
+        if (planet != null) {
+            if (planet.isEmpty() || planet.length() > 50) {
+                return new ResponseEntity<>(updatedShip, HttpStatus.BAD_REQUEST);
+            }
             originalShip.setPlanet(updatedShip.getPlanet());
         }
         if (updatedShip.getShipType() != null) {
             originalShip.setShipType(updatedShip.getShipType());
         }
-        Date prodDate = updatedShip.getProdDate();
+
         if (prodDate != null) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(prodDate.getTime());
+            if (calendar.get(Calendar.YEAR) < 2800 || calendar.get(Calendar.YEAR) > 3019) {
+                return new ResponseEntity<>(updatedShip, HttpStatus.BAD_REQUEST);
+            }
             Date date = calendar.getTime();
             originalShip.setProdDate(date);
         }
-        originalShip.setUsed(updatedShip.getUsed());
-        if (updatedShip.getSpeed() != null) {
-            originalShip.setSpeed(updatedShip.getSpeed());
+        Boolean isUsed = updatedShip.getUsed();
+        if (isUsed != null) {
+            originalShip.setUsed(isUsed);
         }
-        if (updatedShip.getCrewSize() != null) {
-            originalShip.setCrewSize(updatedShip.getCrewSize());
+        if (speed != null) {
+            if (speed < 0.01 || speed > 0.99) {
+                return new ResponseEntity<>(updatedShip, HttpStatus.BAD_REQUEST);
+            }
+            originalShip.setSpeed(speed);
         }
+        if (crewSize != null) {
+            if (crewSize < 1 || crewSize > 9999) {
+                return new ResponseEntity<>(updatedShip, HttpStatus.BAD_REQUEST);
+            }
+            originalShip.setCrewSize(crewSize);
+        }
+
         double k = originalShip.getUsed() ? 0.5 : 1;
         int currentYear = 3019;
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(originalShip.getProdDate().getTime());
         int shipProdYear = calendar.get(Calendar.YEAR);
         Double rating = (80.0 * originalShip.getSpeed() * k) / (currentYear - shipProdYear + 1);
-        originalShip.setRating(rating);
+        originalShip.setRating(new BigDecimal(rating.toString()).setScale(2, RoundingMode.HALF_UP).doubleValue());
         updatedShip = shipService.updateShip(originalShip);
         return new ResponseEntity<>(updatedShip, HttpStatus.OK);
     }
