@@ -35,6 +35,44 @@ public class ShipService {
         return shipRepository.count((Specification<ShipModel>) (root, query, criteriaBuilder) -> getPredicate(name, planet, shipType, after, before, isUsed, minSpeed, maxSpeed, minCrewSize, maxCrewSize, minRating, maxRating, root, criteriaBuilder));
     }
 
+    public List<ShipModel> getShips(
+            String name,
+            String planet,
+            ShipType shipType,
+            Long after, Long before,
+            Boolean isUsed,
+            Double minSpeed, Double maxSpeed,
+            Integer minCrewSize, Integer maxCrewSize,
+            Double minRating, Double maxRating,
+            String property,
+            Pageable pageable
+    ) {
+
+        return shipRepository.findAll((Specification<ShipModel>) (root, query, criteriaBuilder) -> {
+            Predicate predicate = getPredicate(name, planet, shipType, after, before, isUsed, minSpeed, maxSpeed, minCrewSize, maxCrewSize, minRating, maxRating, root, criteriaBuilder);
+            query.orderBy(criteriaBuilder.asc(root.get(property)));
+            return predicate;
+        }, pageable).getContent();
+    }
+
+    public ShipModel createShip(ShipModel shipModel) {
+        shipModel = shipRepository.save(shipModel);
+        return shipModel;
+    }
+
+    public Optional<ShipModel> getShipById(Long id) {
+        return shipRepository.findById(id);
+    }
+
+    public ShipModel updateShip(ShipModel shipToUpdate) {
+        return shipRepository.save(shipToUpdate);
+    }
+
+    public void deleteShip(Long id) {
+        shipRepository.deleteById(id);
+    }
+
+
     private Predicate getPredicate(String name, String planet, ShipType shipType, Long after, Long before, Boolean isUsed, Double minSpeed, Double maxSpeed, Integer minCrewSize, Integer maxCrewSize, Double minRating, Double maxRating, Root<ShipModel> root, CriteriaBuilder criteriaBuilder) {
         Predicate predicate = criteriaBuilder.conjunction();
         if (name != null) {
@@ -82,40 +120,4 @@ public class ShipService {
         return predicate;
     }
 
-    public List<ShipModel> getShips(
-            String name,
-            String planet,
-            ShipType shipType,
-            Long after, Long before,
-            Boolean isUsed,
-            Double minSpeed, Double maxSpeed,
-            Integer minCrewSize, Integer maxCrewSize,
-            Double minRating, Double maxRating,
-            String property,
-            Pageable pageable
-    ) {
-
-        return shipRepository.findAll((Specification<ShipModel>) (root, query, criteriaBuilder) -> {
-            Predicate predicate = getPredicate(name, planet, shipType, after, before, isUsed, minSpeed, maxSpeed, minCrewSize, maxCrewSize, minRating, maxRating, root, criteriaBuilder);
-            query.orderBy(criteriaBuilder.asc(root.get(property)));
-            return predicate;
-        }, pageable).getContent();
-    }
-
-    public ShipModel createShip(ShipModel shipModel) {
-        shipModel = shipRepository.save(shipModel);
-        return shipModel;
-    }
-
-    public Optional<ShipModel> getShipById(Long id) {
-        return shipRepository.findById(id);
-    }
-
-    public ShipModel updateShip(ShipModel shipToUpdate) {
-        return shipRepository.save(shipToUpdate);
-    }
-
-    public void deleteShip(Long id) {
-        shipRepository.deleteById(id);
-    }
 }
