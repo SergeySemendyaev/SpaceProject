@@ -41,26 +41,12 @@ public class ShipService {
             if (after != null) {
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(after);
-                //calendar.set(Calendar.MONTH, Calendar.JANUARY);
-                //calendar.set(Calendar.DATE, 1);
-                //calendar.set(Calendar.HOUR, 0);
-                //calendar.set(Calendar.MINUTE, 0);
-                //calendar.set(Calendar.SECOND, 0);
-                //calendar.set(Calendar.MILLISECOND, 0);
-                //calendar.set(Calendar.AM_PM, Calendar.AM);
                 Date startDate = calendar.getTime();
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("prodDate"), startDate));
             }
             if (before != null) {
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(before);
-                //calendar.set(Calendar.MONTH, Calendar.DECEMBER);
-                //calendar.set(Calendar.DATE, 31);
-                //calendar.set(Calendar.HOUR, 11);
-                //calendar.set(Calendar.MINUTE, 59);
-                //calendar.set(Calendar.SECOND, 59);
-                //calendar.set(Calendar.MILLISECOND, 999);
-                //calendar.set(Calendar.AM_PM, Calendar.PM);
                 Date endDate = calendar.getTime();
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThanOrEqualTo(root.get("prodDate"), endDate));
             }
