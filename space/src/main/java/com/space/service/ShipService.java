@@ -1,14 +1,14 @@
 package com.space.service;
 
 import com.space.model.ShipModel;
+import com.space.model.ShipType;
 import com.space.repository.ShipRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import javax.persistence.criteria.Predicate;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class ShipService {
@@ -23,12 +23,16 @@ public class ShipService {
         return shipRepository.count();
     }
 
-    public List<ShipModel> getShips(String name, String planet,
+    public List<ShipModel> getShips(String name,
+                                    String planet,
+                                    ShipType shipType,
                                     Long after, Long before,
                                     Boolean isUsed,
                                     Double minSpeed, Double maxSpeed,
                                     Integer minCrewSize, Integer maxCrewSize,
-                                    Double minRating, Double maxRating, String property, Pageable pageable) {
+                                    Double minRating, Double maxRating,
+                                    String property,
+                                    Pageable pageable) {
         return shipRepository.findAll((Specification<ShipModel>) (root, query, criteriaBuilder) -> {
             Predicate predicate = criteriaBuilder.conjunction();
             if (name != null) {
@@ -38,18 +42,34 @@ public class ShipService {
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.like(root.get("planet"), "%" + planet + "%"));
             }
             if (after != null) {
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("prodDate"), new Date(after)));
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(after);
+                calendar.set(Calendar.MONTH, 0);
+                calendar.set(Calendar.DATE, 1);
+                calendar.set(Calendar.HOUR, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MILLISECOND, 0);
+                Date startDate = calendar.getTime();
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("prodDate"), startDate));
             }
             if (before != null) {
-                predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThanOrEqualTo(root.get("prodDate"), new Date(before)));
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTimeInMillis(before);
+                calendar.set(Calendar.MONTH, 11);
+                calendar.set(Calendar.DATE, 31);
+                calendar.set(Calendar.HOUR, 23);
+                calendar.set(Calendar.MINUTE, 59);
+                calendar.set(Calendar.SECOND, 59);
+                calendar.set(Calendar.MILLISECOND, 999);
+                Date endDate = calendar.getTime();
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.lessThanOrEqualTo(root.get("prodDate"), endDate));
+            }
+            if (shipType != null) {
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("shipType"), shipType));
             }
             if (isUsed != null) {
-                if (isUsed) {
-                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.isTrue(root.get("isUsed")));
-                }
-                else {
-                    predicate = criteriaBuilder.and(predicate, criteriaBuilder.isFalse(root.get("isUsed")));
-                }
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.equal(root.get("isUsed"), isUsed));
             }
             if (minSpeed != null) {
                 predicate = criteriaBuilder.and(predicate, criteriaBuilder.greaterThanOrEqualTo(root.get("speed"), minSpeed));
@@ -72,5 +92,22 @@ public class ShipService {
             query.orderBy(criteriaBuilder.asc(root.get(property)));
             return predicate;
         }, pageable).getContent();
+    }
+
+    public ShipModel createShip(ShipModel shipModel) {
+        shipModel = shipRepository.save(shipModel);
+        return shipModel;
+    }
+
+    public Optional<ShipModel> getShipById(Long id) {
+        return shipRepository.findById(id);
+    }
+
+    public ShipModel updateShip(ShipModel shipToUpdate) {
+        return shipRepository.save(shipToUpdate);
+    }
+
+    public void deleteShip(Long id) {
+        shipRepository.deleteById(id);
     }
 }
