@@ -3,14 +3,12 @@ package com.space.controller;
 import com.space.model.ShipModel;
 import com.space.model.ShipType;
 import com.space.service.ShipService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -19,7 +17,6 @@ import java.util.*;
 @RequestMapping(path = "/rest")
 public class ShipController {
 
-    @Autowired
     private final ShipService shipService;
 
     public ShipController(ShipService shipService) {
@@ -45,8 +42,12 @@ public class ShipController {
             @RequestParam(required = false) Integer pageSize,
             @RequestParam(required = false) String order
     ) {
+        ShipOrder shipOrder;
         if (order == null) {
-            order = "id";
+            shipOrder = ShipOrder.ID;
+        }
+        else {
+            shipOrder = ShipOrder.valueOf(order);
         }
         if (pageNumber == null) {
             pageNumber = 0;
@@ -55,7 +56,7 @@ public class ShipController {
             pageSize = 3;
         }
 
-        String property = (order.equals("DATE") ? "prodDate" : order.toLowerCase());
+        String property = shipOrder.getFieldName();
         Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.Direction.ASC, property);
 
         List<ShipModel> ships = shipService.getShips(
@@ -126,7 +127,7 @@ public class ShipController {
         Boolean isUsed = shipModel.getUsed();
         if (isUsed == null) {
             isUsed = false;
-            shipModel.setUsed(isUsed);
+            shipModel.setUsed(false);
         }
         Double speed = shipModel.getSpeed();
         Integer crewSize = shipModel.getCrewSize();
@@ -235,8 +236,8 @@ public class ShipController {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(originalShip.getProdDate().getTime());
         int shipProdYear = calendar.get(Calendar.YEAR);
-        Double rating = (80.0 * originalShip.getSpeed() * k) / (currentYear - shipProdYear + 1);
-        originalShip.setRating(new BigDecimal(rating.toString()).setScale(2, RoundingMode.HALF_UP).doubleValue());
+        double rating = (80.0 * originalShip.getSpeed() * k) / (currentYear - shipProdYear + 1);
+        originalShip.setRating(new BigDecimal(String.valueOf(rating)).setScale(2, RoundingMode.HALF_UP).doubleValue());
         updatedShip = shipService.updateShip(originalShip);
         return new ResponseEntity<>(updatedShip, HttpStatus.OK);
     }
