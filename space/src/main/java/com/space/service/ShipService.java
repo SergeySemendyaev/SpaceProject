@@ -41,7 +41,7 @@ public class ShipService {
             if (after != null) {
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(after);
-                calendar.set(Calendar.MONTH, 0);
+                calendar.set(Calendar.MONTH, Calendar.JANUARY);
                 calendar.set(Calendar.DATE, 1);
                 calendar.set(Calendar.HOUR, 0);
                 calendar.set(Calendar.MINUTE, 0);
@@ -54,7 +54,7 @@ public class ShipService {
             if (before != null) {
                 Calendar calendar = Calendar.getInstance();
                 calendar.setTimeInMillis(before);
-                calendar.set(Calendar.MONTH, 11);
+                calendar.set(Calendar.MONTH, Calendar.DECEMBER);
                 calendar.set(Calendar.DATE, 31);
                 calendar.set(Calendar.HOUR, 11);
                 calendar.set(Calendar.MINUTE, 59);
